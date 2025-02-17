@@ -1,0 +1,70 @@
+[versions]
+accompanistImageloadingCoil = "0.24.9-alpha"
+agp = "8.6.1"
+coilCompose = "2.1.0"
+core = "3.4.1"
+kotlin = "1.9.0"
+coreKtx = "1.13.1"
+junit = "4.13.2"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+lifecycleRuntimeKtx = "2.8.6"
+activityCompose = "1.9.3"
+composeBom = "2024.04.01"
+lifecycleViewmodelCompose = "2.6.0"
+okio = "2.10.0"
+picasso = "2.71828"
+poiOoxml = "5.2.3"
+roomCompiler = "2.5.1"
+roomCompilerVersion = "2.6.1"
+roomKtx = "2.5.0"
+ucrop = "2.2.8"
+ucropVersion = "2.2.6"
+material = "1.12.0"
+appcompat = "1.7.0"
+constraintlayout = "2.2.0"
+navigationFragmentKtx = "2.8.3"
+navigationUiKtx = "2.8.3"
+runtimeLivedata = "1.7.7"
+
+[libraries]
+accompanist-imageloader = { module = "com.google.accompanist:accompanist-imageloader", version.ref = "accompanistImageloadingCoil" }
+accompanist-imageloading-coil = { module = "com.google.accompanist:accompanist-imageloading-coil", version.ref = "accompanistImageloadingCoil" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomKtx" }
+androidx-room-compiler-v251 = { module = "androidx.room:room-compiler", version.ref = "roomCompiler" }
+androidx-room-compiler-v261 = { module = "androidx.room:room-compiler", version.ref = "roomCompilerVersion" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomKtx" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomKtx" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
+core = { module = "com.google.zxing:core", version.ref = "core" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
+picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
+poi-ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poiOoxml" }
+ucrop = { module = "com.github.yalantis:ucrop", version.ref = "ucrop" }
+ucrop-v226 = { module = "com.github.yalantis:ucrop", version.ref = "ucropVersion" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
+androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigationUiKtx" }
+androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
