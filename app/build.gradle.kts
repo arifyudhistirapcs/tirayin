@@ -88,6 +88,7 @@ dependencies {
     kapt(libs.androidx.room.compiler.v261)
     implementation(libs.core)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation (libs.gson)
 
 }
 

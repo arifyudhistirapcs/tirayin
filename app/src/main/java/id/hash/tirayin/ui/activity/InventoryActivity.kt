@@ -1,6 +1,7 @@
 package id.hash.tirayin.ui.activity
 
 import android.app.Activity
+import android.app.DatePickerDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -9,6 +10,7 @@ import id.hash.tirayin.MyApp
 import id.hash.tirayin.viewmodel.*
 import android.os.Bundle
 import android.os.Environment
+import android.widget.DatePicker
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,6 +21,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -35,10 +38,12 @@ import id.hash.tirayin.SimpleFormTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.content.FileProvider
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 import id.hash.tirayin.model.Objects
+import id.hash.tirayin.model.Transactions
 import id.hash.tirayin.model.Types
 import id.hash.tirayin.model.Usages
 import id.hash.tirayin.model.Variants
@@ -49,6 +54,10 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import android.graphics.Color as AndroidColor
 
 class InventoryActivity : ComponentActivity() {
@@ -56,6 +65,7 @@ class InventoryActivity : ComponentActivity() {
     private val typeRepository by lazy { (application as MyApp).typeRepository }
     private val objectRepository by lazy { (application as MyApp).objectRepository }
     private val usageRepository by lazy { (application as MyApp).usageRepository }
+    private val transactionRepository by lazy { (application as MyApp).transactionRepository }
 
     private val variantViewModel: VariantViewModel by viewModels {
         VariantViewModelFactory(variantRepository)
@@ -69,6 +79,10 @@ class InventoryActivity : ComponentActivity() {
     private val usageViewModel: UsageViewModel by viewModels {
         UsageViewModelFactory(usageRepository)
     }
+    private val transactionViewModel: TransactionViewModel by viewModels {
+        TransactionViewModelFactory(transactionRepository)
+    }
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,7 +101,7 @@ class InventoryActivity : ComponentActivity() {
                     drawerState = rememberDrawerState(DrawerValue.Closed),
                     modifier = Modifier.fillMaxWidth(0.75f) // Sidebar occupies 75% of the screen width
                 )  {
-                    InventoryScreen(variantViewModel, typeViewModel)
+                    InventoryScreen(variantViewModel, typeViewModel,transactionViewModel)
                 }
             }
         }
@@ -98,12 +112,16 @@ class InventoryActivity : ComponentActivity() {
 fun InventoryScreen(
     variantViewModel: VariantViewModel = viewModel(),
     typeViewModel: TypeViewModel = viewModel(),
+    transactionViewModel: TransactionViewModel = viewModel(),
     context: Context = LocalContext.current
 ) {
     var showAddVariantDialog by remember { mutableStateOf(false) }
     var showEditVariantDialog by remember { mutableStateOf(false) }
     var selectedVariant by remember { mutableStateOf<Variants?>(null) }
     var fabExpanded by remember { mutableStateOf(false) }
+
+    var showTransactionFormDialog by remember { mutableStateOf(false) }
+    var isStockIn by remember { mutableStateOf(true) }
 
     Column(modifier = Modifier
         .padding(16.dp)
@@ -159,15 +177,25 @@ fun InventoryScreen(
                 text = { Text("Generate Stock In") },
                 onClick = {
                     fabExpanded = false
-                    // Handle import all list variants on excel
+                    isStockIn = true
+                    showTransactionFormDialog = true
                 })
             DropdownMenuItem(
                 text = { Text("Generate Stock Out") },
                 onClick = {
                     fabExpanded = false
-                    // Handle import all list variants on excel
-                })
+                    isStockIn = false
+                    showTransactionFormDialog = true                })
         }
+    }
+
+    if (showTransactionFormDialog) {
+        TransactionFormDialog(
+            transactionViewModel = transactionViewModel,
+            onDismiss = { showTransactionFormDialog = false },
+            isStockIn = isStockIn,
+            variantViewModel = variantViewModel
+        )
     }
 }
 
@@ -867,6 +895,161 @@ fun EditUsageDialog(usageViewModel: UsageViewModel, usage: Usages, onDismiss: ()
             Button(onClick = {
                 if (name.isNotBlank()) {
                     usageViewModel.updateItem(usage.copy(name = name))
+                    onDismiss()
+                }
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TransactionFormDialog(
+    isStockIn: Boolean,
+    onDismiss: () -> Unit,
+    transactionViewModel: TransactionViewModel,
+    variantViewModel: VariantViewModel
+) {
+    var name by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var selectedVariant by remember { mutableStateOf<Variants?>(null) }
+    var quantity by remember { mutableStateOf("") }
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    var variantsList by remember { mutableStateOf(mutableListOf<Pair<Variants, Int>>()) }
+
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance()
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    val variants by variantViewModel.items.observeAsState(initial = emptyList())
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (isStockIn) "Generate Stock In" else "Generate Stock Out") },
+        text = {
+            Column {
+                // Date Picker Button
+                Button(onClick = { showDatePicker = true }) {
+                    Text(text = "Select Date: ${dateFormat.format(Date(date))}")
+                }
+                if (showDatePicker) {
+                    DatePickerDialog(
+                        context,
+                        { _: DatePicker, year: Int, month: Int, day: Int ->
+                            calendar.set(year, month, day)
+                            date = calendar.timeInMillis
+                            showDatePicker = false
+                        },
+                        calendar.get(Calendar.YEAR),
+                        calendar.get(Calendar.MONTH),
+                        calendar.get(Calendar.DAY_OF_MONTH)
+                    ).show()
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Name Input
+                TextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(if (isStockIn) "Supplier Name" else "Worker Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Variant Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = dropdownExpanded,
+                    onExpandedChange = { dropdownExpanded = !dropdownExpanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextField(
+                        value = selectedVariant?.name ?: "Select Variant",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Variant") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded)
+                        },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = dropdownExpanded,
+                        onDismissRequest = { dropdownExpanded = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        variants.forEach { variant ->
+                            DropdownMenuItem(
+                                text = { Text(variant.name) },
+                                onClick = {
+                                    selectedVariant = variant
+                                    dropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Quantity Input
+                TextField(
+                    value = quantity,
+                    onValueChange = { quantity = it },
+                    label = { Text("Quantity") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Add Variant Button
+                Button(onClick = {
+                    if (selectedVariant != null && quantity.isNotBlank()) {
+                        variantsList.add(Pair(selectedVariant!!, quantity.toInt()))
+                        selectedVariant = null
+                        quantity = ""
+                    }
+                }) {
+                    Text("Add Variant")
+                }
+
+                // Display and Edit Added Variants
+                variantsList.forEachIndexed { index, (variant, qty) ->
+                    var quantity by remember { mutableStateOf(qty.toString()) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(variant.name, modifier = Modifier.weight(1f))
+                        TextField(
+                            value = quantity,
+                            onValueChange = { newQty ->
+                                quantity = newQty
+                                val q = newQty.toIntOrNull() ?: 0
+                                variantsList[index] = Pair(variant, q)
+                            },
+                            label = { Text("Quantity") },
+                            modifier = Modifier.width(100.dp),
+                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                if (name.isNotBlank() && variantsList.isNotEmpty()) {
+                    val newTransaction = Transactions(
+                        status = if (isStockIn) "in" else "out",
+                        name = name,
+                        date = date,
+                        variants = variantsList.map { it.first.copy(quantity = it.second) }
+                    )
+                    transactionViewModel.addTransaction(newTransaction)
                     onDismiss()
                 }
             }) {

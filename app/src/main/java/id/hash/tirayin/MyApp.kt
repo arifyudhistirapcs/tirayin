@@ -4,6 +4,7 @@ import id.hash.tirayin.db.MyDatabase
 import id.hash.tirayin.repository.VariantRepository
 import android.app.Application
 import id.hash.tirayin.repository.ObjectRepository
+import id.hash.tirayin.repository.TransactionRepository
 import id.hash.tirayin.repository.TypeRepository
 import id.hash.tirayin.repository.UsageRepository
 
@@ -20,6 +21,8 @@ class MyApp : Application() {
         private set
     lateinit var usageRepository: UsageRepository
         private set
+    lateinit var transactionRepository: TransactionRepository
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -28,5 +31,6 @@ class MyApp : Application() {
         typeRepository = TypeRepository(database.typeDao())
         objectRepository = ObjectRepository(database.objectDao())
         usageRepository = UsageRepository(database.usageDao())
+        transactionRepository = TransactionRepository(database.transactionDao())
     }
 }
