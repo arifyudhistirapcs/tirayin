@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.content.FileProvider
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
+import id.hash.tirayin.model.Measurements
 import id.hash.tirayin.model.Objects
 import id.hash.tirayin.model.Transactions
 import id.hash.tirayin.model.Types
@@ -66,6 +67,7 @@ class InventoryActivity : ComponentActivity() {
     private val objectRepository by lazy { (application as MyApp).objectRepository }
     private val usageRepository by lazy { (application as MyApp).usageRepository }
     private val transactionRepository by lazy { (application as MyApp).transactionRepository }
+    private val measurementRepository by lazy { (application as MyApp).measurementRepository }
 
     private val variantViewModel: VariantViewModel by viewModels {
         VariantViewModelFactory(variantRepository)
@@ -82,6 +84,9 @@ class InventoryActivity : ComponentActivity() {
     private val transactionViewModel: TransactionViewModel by viewModels {
         TransactionViewModelFactory(transactionRepository)
     }
+    private val measurementViewModel: MeasurementViewModel by viewModels {
+        MeasurementViewModelFactory(measurementRepository)
+    }
 
 
 
@@ -92,16 +97,16 @@ class InventoryActivity : ComponentActivity() {
                 ModalNavigationDrawer(
                     drawerContent = {
                         Sidebar(
-                            variantViewModel = variantViewModel,
                             typeViewModel = typeViewModel,
                             objectViewModel = objectViewModel,
-                            usageViewModel = usageViewModel
+                            usageViewModel = usageViewModel,
+                            measurementViewModel = measurementViewModel
                         )
                     },
                     drawerState = rememberDrawerState(DrawerValue.Closed),
                     modifier = Modifier.fillMaxWidth(0.75f) // Sidebar occupies 75% of the screen width
                 )  {
-                    InventoryScreen(variantViewModel, typeViewModel,transactionViewModel)
+                    InventoryScreen(variantViewModel, typeViewModel,transactionViewModel,measurementViewModel)
                 }
             }
         }
@@ -113,6 +118,7 @@ fun InventoryScreen(
     variantViewModel: VariantViewModel = viewModel(),
     typeViewModel: TypeViewModel = viewModel(),
     transactionViewModel: TransactionViewModel = viewModel(),
+    measurementViewModel: MeasurementViewModel = viewModel(),
     context: Context = LocalContext.current
 ) {
     var showAddVariantDialog by remember { mutableStateOf(false) }
@@ -138,11 +144,14 @@ fun InventoryScreen(
             }
         }
         variantViewModel.items.observeAsState().value?.forEach { item ->
-            InventoryItemCard(
+            InventoryVariantCard (
                 name = item.name,
-                parent = "Type: ${item.typeName}",
-                details1 = "Quantity: ${item.quantity}",
-                details2 = "QR Code: ${item.qrCode}",
+                code = item.qrCode,
+                type = item.typeName,
+                qty1 = item.qty1.toString(),
+                qty2 = item.qty2.toString(),
+                msr1 = item.msr1,
+                msr2 = item.msr2,
                 onEditClick = {
                     selectedVariant = item
                     showEditVariantDialog = true
@@ -152,11 +161,11 @@ fun InventoryScreen(
     }
 
     if (showAddVariantDialog) {
-        AddVariantDialog(variantViewModel, typeViewModel) { showAddVariantDialog = false }
+        AddVariantDialog(variantViewModel, typeViewModel,measurementViewModel) { showAddVariantDialog = false }
     }
 
     if (showEditVariantDialog && selectedVariant != null) {
-        EditVariantDialog(variantViewModel, typeViewModel, selectedVariant!!) { showEditVariantDialog = false }
+        EditVariantDialog(variantViewModel, typeViewModel,measurementViewModel, selectedVariant!!) { showEditVariantDialog = false }
     }
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
@@ -200,7 +209,40 @@ fun InventoryScreen(
 }
 
 @Composable
-fun InventoryItemCard(name: String, parent: String? = null, details1: String? = null, details2: String? = null, onEditClick: () -> Unit) {
+fun InventoryVariantCard(name: String,code : String?, type: String? = null, qty1: String? = null, msr1: String? = null, qty2: String? = null, msr2: String? = null, onEditClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable { onEditClick() },
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(name, style = MaterialTheme.typography.bodyLarge, fontSize = 18.sp)
+            if (code != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Code : $code", style = MaterialTheme.typography.bodyMedium, fontSize = 14.sp)
+            }
+            if (type != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Type : $type", style = MaterialTheme.typography.bodyMedium, fontSize = 14.sp)
+            }
+            if (qty1 != null && msr1 != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Main Quantity : $qty1 $msr1", style = MaterialTheme.typography.bodyMedium, fontSize = 14.sp)
+            }
+
+            if (qty2 != null && msr2 != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Sub Quantity : $qty2 $msr2", style = MaterialTheme.typography.bodyMedium, fontSize = 14.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun InventoryItemCard(name: String,parent:String?, details1: String? = null, details2: String? = null, onEditClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -226,37 +268,39 @@ fun InventoryItemCard(name: String, parent: String? = null, details1: String? = 
         }
     }
 }
-
 @Composable
 fun Sidebar(
-    variantViewModel: VariantViewModel = viewModel(),
     typeViewModel: TypeViewModel = viewModel(),
     objectViewModel: ObjectViewModel = viewModel(),
-    usageViewModel: UsageViewModel = viewModel()
+    usageViewModel: UsageViewModel = viewModel(),
+    measurementViewModel: MeasurementViewModel = viewModel()
 ) {
-    var showAddVariantDialog by remember { mutableStateOf(false) }
     var showAddTypeDialog by remember { mutableStateOf(false) }
     var showAddObjectDialog by remember { mutableStateOf(false) }
     var showAddUsageDialog by remember { mutableStateOf(false) }
+    var showAddMeasurementDialog by remember { mutableStateOf(false) }
 
-    var showEditVariantDialog by remember { mutableStateOf(false) }
     var showEditTypeDialog by remember { mutableStateOf(false) }
     var showEditObjectDialog by remember { mutableStateOf(false) }
     var showEditUsageDialog by remember { mutableStateOf(false) }
-    var selectedVariant by remember { mutableStateOf<Variants?>(null) }
+    var showEditMeasurementDialog by remember { mutableStateOf(false) }
+
     var selectedType by remember { mutableStateOf<Types?>(null) }
     var selectedObject by remember { mutableStateOf<Objects?>(null) }
     var selectedUsage by remember { mutableStateOf<Usages?>(null) }
+    var selectedMeasurement by remember { mutableStateOf<Measurements?>(null) }
 
     val types by typeViewModel.items.observeAsState(initial = emptyList())
     val objects by objectViewModel.items.observeAsState(initial = emptyList())
     val usages by usageViewModel.items.observeAsState(initial = emptyList())
+    val measurements by measurementViewModel.items.observeAsState(initial = emptyList())
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
             .padding(16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         Text("List Category", style = MaterialTheme.typography.headlineSmall)
 
@@ -318,17 +362,39 @@ fun Sidebar(
         usages.forEach { usg ->
             InventoryItemCard(
                 name = usg.name,
+                parent = null,
                 onEditClick = {
                     selectedUsage = usg
                     showEditUsageDialog = true
                 }
             )
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Utils", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Measurement", style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.width(16.dp))
+            IconButton(onClick = { showAddMeasurementDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add Measurement")
+            }
+        }
+        measurements.forEach { msr ->
+            InventoryItemCard(
+                name = msr.name,
+                parent = null,
+                onEditClick = {
+                    selectedMeasurement = msr
+                    showEditMeasurementDialog = true
+                }
+            )
+        }
     }
 
-    if (showAddVariantDialog) {
-        AddVariantDialog(variantViewModel, typeViewModel) { showAddVariantDialog = false }
-    }
     if (showAddTypeDialog) {
         AddTypeDialog(typeViewModel, objectViewModel) { showAddTypeDialog = false }
     }
@@ -338,10 +404,10 @@ fun Sidebar(
     if (showAddUsageDialog) {
         AddUsageDialog(usageViewModel) { showAddUsageDialog = false }
     }
-
-    if (showEditVariantDialog && selectedVariant != null) {
-        EditVariantDialog(variantViewModel, typeViewModel, selectedVariant!!) { showEditVariantDialog = false }
+    if (showAddMeasurementDialog) {
+        AddMeasurementDialog(measurementViewModel) { showAddMeasurementDialog = false }
     }
+
     if (showEditTypeDialog && selectedType != null) {
         EditTypeDialog(typeViewModel,objectViewModel, selectedType!!) { showEditTypeDialog = false }
     }
@@ -351,12 +417,8 @@ fun Sidebar(
     if (showEditUsageDialog && selectedUsage != null) {
         EditUsageDialog(usageViewModel, selectedUsage!!) { showEditUsageDialog = false }
     }
-}
-
-@Composable
-fun AddItemButton(text: String, onClick: () -> Unit) {
-    Button(onClick = onClick, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Text(text)
+    if (showEditMeasurementDialog && selectedMeasurement != null) {
+        EditMeasurementDialog(measurementViewModel, selectedMeasurement!!) { showEditMeasurementDialog = false }
     }
 }
 
@@ -365,16 +427,24 @@ fun AddItemButton(text: String, onClick: () -> Unit) {
 fun AddVariantDialog(
     variantViewModel: VariantViewModel,
     typeViewModel: TypeViewModel,
+    measurementViewModel: MeasurementViewModel,
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var quantity by remember { mutableStateOf("") }
+    var qty1 by remember { mutableStateOf("") }
+    var msr1 by remember { mutableStateOf("") }
+    var xqty2 by remember { mutableStateOf("") }
+    var qty2 by remember { mutableStateOf("") }
+    var msr2 by remember { mutableStateOf("") }
     var selectedTypeName by remember { mutableStateOf("") }
     var selectedObjectName by remember { mutableStateOf("") }
     var selectedUsageName by remember { mutableStateOf("") }
-    var dropdownExpanded by remember { mutableStateOf(false) }
+    var dropdownExpandedType by remember { mutableStateOf(false) }
+    var dropdownExpandedMsr1 by remember { mutableStateOf(false) }
+    var dropdownExpandedMsr2 by remember { mutableStateOf(false) }
 
     val types by typeViewModel.items.observeAsState(initial = emptyList())
+    val msr by measurementViewModel.items.observeAsState(initial = emptyList())
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -389,8 +459,8 @@ fun AddVariantDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 ExposedDropdownMenuBox(
-                    expanded = dropdownExpanded,
-                    onExpandedChange = { dropdownExpanded = !dropdownExpanded },
+                    expanded = dropdownExpandedType,
+                    onExpandedChange = { dropdownExpandedType = !dropdownExpandedType },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextField(
@@ -399,15 +469,15 @@ fun AddVariantDialog(
                         readOnly = true,
                         label = { Text("Type") },
                         trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded)
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpandedType)
                         },
                         modifier = Modifier
                             .menuAnchor()
                             .fillMaxWidth()
                     )
                     ExposedDropdownMenu(
-                        expanded = dropdownExpanded,
-                        onDismissRequest = { dropdownExpanded = false },
+                        expanded = dropdownExpandedType,
+                        onDismissRequest = { dropdownExpandedType = false },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         types.forEach { type ->
@@ -417,25 +487,119 @@ fun AddVariantDialog(
                                     selectedTypeName = type.name
                                     selectedObjectName = type.objectName
                                     selectedUsageName = type.usageName
-                                    dropdownExpanded = false
+                                    dropdownExpandedType = false
                                 }
                             )
                         }
                     }
+
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
-                    value = quantity,
-                    onValueChange = { quantity = it },
-                    label = { Text("Quantity Existing") },
-                    modifier = Modifier.fillMaxWidth()
+                    value = qty1,
+                    onValueChange = { qty1 = it },
+                    label = { Text("Main Quantity") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                ExposedDropdownMenuBox(
+                    expanded = dropdownExpandedMsr1,
+                    onExpandedChange = { dropdownExpandedMsr1 = !dropdownExpandedMsr1 },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextField(
+                        value = msr1,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Measurement") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpandedMsr1)
+                        },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = dropdownExpandedMsr1,
+                        onDismissRequest = { dropdownExpandedMsr1 = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        msr.forEach { type ->
+                            DropdownMenuItem(
+                                text = { Text(type.name) },
+                                onClick = {
+                                    msr1 = type.name
+                                    dropdownExpandedMsr1 = false
+                                }
+                            )
+                        }
+                    }
+
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                TextField(
+                    value = xqty2,
+                    onValueChange = { xqty2 = it },
+                    label = { Text("Sub Quantity (per 1 main qty)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                ExposedDropdownMenuBox(
+                    expanded = dropdownExpandedMsr2,
+                    onExpandedChange = { dropdownExpandedMsr2 = !dropdownExpandedMsr2 },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextField(
+                        value = msr2,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Measurement") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpandedMsr2)
+                        },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = dropdownExpandedMsr2,
+                        onDismissRequest = { dropdownExpandedMsr2 = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        msr.forEach { type ->
+                            DropdownMenuItem(
+                                text = { Text(type.name) },
+                                onClick = {
+                                    msr2 = type.name
+                                    dropdownExpandedMsr2 = false
+                                }
+                            )
+                        }
+                    }
+
+                }
+
             }
         },
         confirmButton = {
             Button(onClick = {
-                if (selectedTypeName.isNotBlank() && name.isNotBlank() && quantity.isNotBlank()) {
-                    variantViewModel.addItem(name, quantity.toInt(),selectedTypeName,selectedObjectName,selectedUsageName,System.currentTimeMillis().toString())
+                if (selectedTypeName.isNotBlank() && name.isNotBlank() && qty1.isNotBlank() && msr1.isNotBlank() && xqty2.isNotBlank() && msr2.isNotBlank()) {
+                    val variant = Variants(
+                        name = name,
+                        qty1 = qty1.toInt(),
+                        msr1 = msr1,
+                        xqty2 = xqty2.toInt(),
+                        qty2 = xqty2.toInt()*qty1.toInt(),
+                        msr2 = msr2,
+                        typeName = selectedTypeName,
+                        objectName = selectedObjectName,
+                        usageName = selectedUsageName,
+                        qrCode = System.currentTimeMillis().toString()
+                    )
+                    variantViewModel.addItem(variant)
                     onDismiss()
                 }
             }) {
@@ -639,20 +803,55 @@ fun AddUsageDialog(usageViewModel: UsageViewModel, onDismiss: () -> Unit) {
     )
 }
 
+@Composable
+fun AddMeasurementDialog(measurementViewModel: MeasurementViewModel, onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Measurement") },
+        text = {
+            Column {
+                TextField(value = name, onValueChange = { name = it }, label = { Text("Name (ex:pcs)") })
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                measurementViewModel.addItem(name)
+                onDismiss()
+            }) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditVariantDialog(
     variantViewModel: VariantViewModel,
     typeViewModel: TypeViewModel,
+    measurementViewModel: MeasurementViewModel,
     variant: Variants,
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf(variant.name) }
-    var quantity by remember { mutableStateOf(variant.quantity.toString()) }
+    var qty1 by remember { mutableStateOf(variant.qty1.toString()) }
+    var msr1 by remember { mutableStateOf(variant.msr1) }
+    var xqty2 by remember { mutableStateOf(variant.xqty2.toString()) }
+    var msr2 by remember { mutableStateOf(variant.msr2) }
     var selectedTypeName by remember { mutableStateOf(variant.typeName) }
-    var dropdownExpanded by remember { mutableStateOf(false) }
+    var dropdownExpandedType by remember { mutableStateOf(false) }
+    var dropdownExpandedMsr1 by remember { mutableStateOf(false) }
+    var dropdownExpandedMsr2 by remember { mutableStateOf(false) }
 
     val types by typeViewModel.items.observeAsState(initial = emptyList())
+    val msr by measurementViewModel.items.observeAsState(initial = emptyList())
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -667,15 +866,15 @@ fun EditVariantDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
-                    value = quantity,
-                    onValueChange = { quantity = it },
-                    label = { Text("Quantity") },
+                    value = qty1,
+                    onValueChange = { qty1 = it },
+                    label = { Text("Main Quantity") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 ExposedDropdownMenuBox(
-                    expanded = dropdownExpanded,
-                    onExpandedChange = { dropdownExpanded = !dropdownExpanded },
+                    expanded = dropdownExpandedType,
+                    onExpandedChange = { dropdownExpandedType = !dropdownExpandedType },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextField(
@@ -684,15 +883,15 @@ fun EditVariantDialog(
                         readOnly = true,
                         label = { Text("Type") },
                         trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded)
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpandedType)
                         },
                         modifier = Modifier
                             .menuAnchor()
                             .fillMaxWidth()
                     )
                     ExposedDropdownMenu(
-                        expanded = dropdownExpanded,
-                        onDismissRequest = { dropdownExpanded = false },
+                        expanded = dropdownExpandedType,
+                        onDismissRequest = { dropdownExpandedType = false },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         types.forEach { type ->
@@ -700,18 +899,95 @@ fun EditVariantDialog(
                                 text = { Text(type.name) },
                                 onClick = {
                                     selectedTypeName = type.name
-                                    dropdownExpanded = false
+                                    dropdownExpandedType = false
                                 }
                             )
                         }
                     }
                 }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ExposedDropdownMenuBox(
+                        expanded = dropdownExpandedMsr1,
+                        onExpandedChange = { dropdownExpandedMsr1 = !dropdownExpandedMsr1 },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextField(
+                            value = msr1,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Measurement") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpandedMsr1)
+                            },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = dropdownExpandedMsr1,
+                            onDismissRequest = { dropdownExpandedMsr1 = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            msr.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type.name) },
+                                    onClick = {
+                                        msr1 = type.name
+                                        dropdownExpandedMsr1 = false
+                                    }
+                                )
+                            }
+                        }
+
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextField(
+                        value = xqty2,
+                        onValueChange = { xqty2 = it },
+                        label = { Text("Sub Quantity (per main qty)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ExposedDropdownMenuBox(
+                        expanded = dropdownExpandedMsr2,
+                        onExpandedChange = { dropdownExpandedMsr2 = !dropdownExpandedMsr2 },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextField(
+                            value = msr2,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Measurement") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpandedMsr2)
+                            },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = dropdownExpandedMsr2,
+                            onDismissRequest = { dropdownExpandedMsr2 = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            msr.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type.name) },
+                                    onClick = {
+                                        msr2 = type.name
+                                        dropdownExpandedMsr2 = false
+                                    }
+                                )
+                            }
+                        }
+                }
             }
         },
         confirmButton = {
             Button(onClick = {
-                if (name.isNotBlank() && quantity.isNotBlank() && selectedTypeName.isNotBlank()) {
-                    variantViewModel.updateItem(variant.copy(name = name, quantity = quantity.toInt(), typeName = selectedTypeName))
+                if (name.isNotBlank() && qty1.isNotBlank() && selectedTypeName.isNotBlank() && msr1.isNotBlank() && xqty2.isNotBlank() && msr2.isNotBlank()) {
+                    variantViewModel.updateItem(variant.copy(name = name, qty1 = qty1.toInt(), typeName = selectedTypeName , msr1 = msr1, qty2 = xqty2.toInt()*qty1.toInt(), msr2 = msr2 , xqty2 = xqty2.toInt()))
                     onDismiss()
                 }
             }) {
@@ -911,6 +1187,42 @@ fun EditUsageDialog(usageViewModel: UsageViewModel, usage: Usages, onDismiss: ()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun EditMeasurementDialog(measurementViewModel: MeasurementViewModel, measurement: Measurements, onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf(measurement.name) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Usage") },
+        text = {
+            Column {
+                TextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                if (name.isNotBlank()) {
+                    measurementViewModel.updateItem(measurement.copy(name = name))
+                    onDismiss()
+                }
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun TransactionFormDialog(
     isStockIn: Boolean,
     onDismiss: () -> Unit,
@@ -921,7 +1233,7 @@ fun TransactionFormDialog(
     var date by remember { mutableStateOf(System.currentTimeMillis()) }
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedVariant by remember { mutableStateOf<Variants?>(null) }
-    var quantity by remember { mutableStateOf("") }
+    var qty1 by remember { mutableStateOf("") }
     var dropdownExpanded by remember { mutableStateOf(false) }
     var variantsList by remember { mutableStateOf(mutableListOf<Pair<Variants, Int>>()) }
 
@@ -999,11 +1311,11 @@ fun TransactionFormDialog(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Quantity Input
+                // qty1 Input
                 TextField(
-                    value = quantity,
-                    onValueChange = { quantity = it },
-                    label = { Text("Quantity") },
+                    value = qty1,
+                    onValueChange = { qty1 = it },
+                    label = { Text("qty1") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
                 )
@@ -1011,10 +1323,10 @@ fun TransactionFormDialog(
 
                 // Add Variant Button
                 Button(onClick = {
-                    if (selectedVariant != null && quantity.isNotBlank()) {
-                        variantsList.add(Pair(selectedVariant!!, quantity.toInt()))
+                    if (selectedVariant != null && qty1.isNotBlank()) {
+                        variantsList.add(Pair(selectedVariant!!, qty1.toInt()))
                         selectedVariant = null
-                        quantity = ""
+                        qty1 = ""
                     }
                 }) {
                     Text("Add Variant")
@@ -1022,17 +1334,17 @@ fun TransactionFormDialog(
 
                 // Display and Edit Added Variants
                 variantsList.forEachIndexed { index, (variant, qty) ->
-                    var quantity by remember { mutableStateOf(qty.toString()) }
+                    var qty1 by remember { mutableStateOf(qty.toString()) }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(variant.name, modifier = Modifier.weight(1f))
                         TextField(
-                            value = quantity,
+                            value = qty1,
                             onValueChange = { newQty ->
-                                quantity = newQty
+                                qty1 = newQty
                                 val q = newQty.toIntOrNull() ?: 0
                                 variantsList[index] = Pair(variant, q)
                             },
-                            label = { Text("Quantity") },
+                            label = { Text("qty1") },
                             modifier = Modifier.width(100.dp),
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
                         )
@@ -1047,7 +1359,7 @@ fun TransactionFormDialog(
                         status = if (isStockIn) "in" else "out",
                         name = name,
                         date = date,
-                        variants = variantsList.map { it.first.copy(quantity = it.second) }
+                        variants = variantsList.map { it.first.copy(qty1 = it.second) }
                     )
                     transactionViewModel.addTransaction(newTransaction)
                     onDismiss()
@@ -1088,7 +1400,7 @@ fun exportStockToExcel(context: Context, variantViewModel: VariantViewModel) {
     for (variant in variants) {
         val row = sheet.createRow(rowIndex++)
         row.createCell(0).setCellValue(variant.name)
-        row.createCell(1).setCellValue(variant.quantity.toDouble())
+        row.createCell(1).setCellValue(variant.qty1.toDouble())
         row.createCell(2).setCellValue(variant.typeName)
         row.createCell(3).setCellValue(variant.objectName)
         row.createCell(4).setCellValue(variant.usageName)
