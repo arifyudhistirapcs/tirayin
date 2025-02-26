@@ -10,5 +10,6 @@ data class Transactions(
     val status: String,
     val name: String,
     val date: Long,
-    val variants: List<Variants>?
+    val variants: List<Variants>?,
+    val trxCode: String
 )

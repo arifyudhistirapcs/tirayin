@@ -89,6 +89,14 @@ dependencies {
     implementation(libs.core)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation (libs.gson)
+    implementation (libs.androidx.camera.core)
+    implementation (libs.androidx.camera.camera2)
+    implementation (libs.androidx.camera.lifecycle)
+    implementation (libs.androidx.camera.view)
+    implementation (libs.barcode.scanning)
+
+
+
 
 }
 

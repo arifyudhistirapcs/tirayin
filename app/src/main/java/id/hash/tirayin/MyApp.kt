@@ -3,6 +3,7 @@ package id.hash.tirayin
 import id.hash.tirayin.db.MyDatabase
 import id.hash.tirayin.repository.VariantRepository
 import android.app.Application
+import id.hash.tirayin.repository.LogRepository
 import id.hash.tirayin.repository.MeasurementRepository
 import id.hash.tirayin.repository.ObjectRepository
 import id.hash.tirayin.repository.TransactionRepository
@@ -26,6 +27,9 @@ class MyApp : Application() {
         private set
     lateinit var measurementRepository: MeasurementRepository
         private set
+    lateinit var logRepository: LogRepository
+        private set
+
 
     override fun onCreate() {
         super.onCreate()
@@ -36,5 +40,6 @@ class MyApp : Application() {
         usageRepository = UsageRepository(database.usageDao())
         transactionRepository = TransactionRepository(database.transactionDao())
         measurementRepository = MeasurementRepository(database.measurementDao())
+        logRepository = LogRepository(database.logDao())
     }
 }

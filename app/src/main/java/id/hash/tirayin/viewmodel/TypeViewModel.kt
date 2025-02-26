@@ -26,30 +26,30 @@ class TypeViewModel(private val repository: TypeRepository, private val variantR
         viewModelScope.launch {
             val newItem = Types(name = name,objectName = objectName,usageName = usageName)
             repository.insert(newItem)
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList + newItem)
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 
     fun updateItem(item: Types) {
         viewModelScope.launch {
             repository.update(item)
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList.map { if (it.id == item.id) item else it })
-
             // Update variants with the same type name
             val variants = variantRepository.getVariantsByTypeName(item.name)
             variants.forEach { variant ->
                 variantRepository.update(variant.copy(typeName = item.name))
             }
+
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 
     fun deleteItem(item: Types) {
         viewModelScope.launch {
             repository.delete(item)
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList.filter { it.id != item.id })
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 

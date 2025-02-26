@@ -29,8 +29,8 @@ class MeasurementViewModel(private val repository: MeasurementRepository) : View
             val newItem = Measurements(name = name)
             repository.insert(newItem)
             // Update list dengan menambahkan item baru
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList + newItem)
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 
@@ -38,8 +38,8 @@ class MeasurementViewModel(private val repository: MeasurementRepository) : View
         viewModelScope.launch {
             repository.update(item)
             // Update list dengan mengganti item yang sudah ada
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList.map { if (it.id == item.id) item else it })
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 
@@ -47,8 +47,8 @@ class MeasurementViewModel(private val repository: MeasurementRepository) : View
         viewModelScope.launch {
             repository.delete(item)
             // Update list dengan menghapus item yang dimaksud
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList.filter { it.id != item.id })
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 }

@@ -26,24 +26,24 @@ class ObjectViewModel(private val repository: ObjectRepository) : ViewModel() {
         viewModelScope.launch {
             val newItem = Objects(name = name,usageName = usageName)
             repository.insert(newItem)
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList + newItem)
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 
     fun updateItem(item: Objects) {
         viewModelScope.launch {
             repository.update(item)
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList.map { if (it.id == item.id) item else it })
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 
     fun deleteItem(item: Objects) {
         viewModelScope.launch {
             repository.delete(item)
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList.filter { it.id != item.id })
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 }

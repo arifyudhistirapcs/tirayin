@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
 data class Variants(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
-    val qty1: Int,
+    var qty1: Int,
     val msr1: String,
     val xqty2: Int,
     val qty2 : Int,
@@ -16,5 +16,7 @@ data class Variants(
     val usageName : String,
     val objectName : String,
     val typeName : String,
-    val qrCode : String
+    val qrCode : String,
+    val uses : String? = "",
+    val condition : String? = ""
 )

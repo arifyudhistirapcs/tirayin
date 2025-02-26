@@ -1,6 +1,9 @@
 [versions]
 accompanistImageloadingCoil = "0.24.9-alpha"
 agp = "8.6.1"
+barcodeScanning = "17.0.2"
+cameraCore = "1.1.0"
+cameraView = "1.0.0-alpha31"
 coilCompose = "2.1.0"
 core = "3.4.1"
 gson = "2.10.1"
@@ -19,6 +22,7 @@ poiOoxml = "5.2.3"
 roomCompiler = "2.6.1"
 roomCompilerVersion = "2.6.1"
 roomKtx = "2.6.1"
+searchableDropdownMenuJetpackCompose = "1.1.0"
 ucrop = "2.2.8"
 ucropVersion = "2.2.6"
 material = "1.12.0"
@@ -31,6 +35,10 @@ runtimeLivedata = "1.7.7"
 [libraries]
 accompanist-imageloader = { module = "com.google.accompanist:accompanist-imageloader", version.ref = "accompanistImageloadingCoil" }
 accompanist-imageloading-coil = { module = "com.google.accompanist:accompanist-imageloading-coil", version.ref = "accompanistImageloadingCoil" }
+androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCore" }
+androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "cameraCore" }
+androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraCore" }
+androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraView" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomKtx" }
@@ -38,6 +46,8 @@ androidx-room-compiler-v251 = { module = "androidx.room:room-compiler", version.
 androidx-room-compiler-v261 = { module = "androidx.room:room-compiler", version.ref = "roomCompilerVersion" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomKtx" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomKtx" }
+barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "barcodeScanning" }
+breens-mbaka-searchable-dropdown-menu-jetpack-compose = { module = "com.github.Breens-Mbaka:Searchable-Dropdown-Menu-Jetpack-Compose", version.ref = "searchableDropdownMenuJetpackCompose" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 core = { module = "com.google.zxing:core", version.ref = "core" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
@@ -57,6 +67,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
 poi-ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poiOoxml" }
+searchable-dropdown-menu-jetpack-compose = { module = "com.github.Breens-Mbaka:Searchable-Dropdown-Menu-Jetpack-Compose" }
 ucrop = { module = "com.github.yalantis:ucrop", version.ref = "ucrop" }
 ucrop-v226 = { module = "com.github.yalantis:ucrop", version.ref = "ucropVersion" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }

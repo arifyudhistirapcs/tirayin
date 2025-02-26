@@ -27,24 +27,24 @@ class TransactionViewModel(private val repository: TransactionRepository) : View
     fun addTransaction(transaction: Transactions) {
         viewModelScope.launch {
             repository.insert(transaction)
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList + transaction)
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 
     fun updateTransaction(item: Transactions) {
         viewModelScope.launch {
             repository.update(item)
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList.map { if (it.id == item.id) item else it })
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 
     fun deleteTransaction(item: Transactions) {
         viewModelScope.launch {
             repository.delete(item)
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList.filter { it.id != item.id })
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 }

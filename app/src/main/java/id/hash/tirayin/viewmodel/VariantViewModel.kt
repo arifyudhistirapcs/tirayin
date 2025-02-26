@@ -25,16 +25,16 @@ class VariantViewModel(private val repository: VariantRepository) : ViewModel() 
     fun addItem(variants: Variants) {
         viewModelScope.launch {
             repository.insert(variants)
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList + variants)
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 
     fun updateItem(item: Variants) {
         viewModelScope.launch {
             repository.update(item)
-            val currentList = _items.value.orEmpty()
-            _items.postValue(currentList.map { if (it.id == item.id) item else it })
+            val updatedList = repository.getAllItems()
+            _items.postValue(updatedList)
         }
     }
 
