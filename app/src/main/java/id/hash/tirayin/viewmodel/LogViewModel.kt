@@ -21,6 +21,14 @@ class LogViewModel(private val repository: LogRepository) : ViewModel() {
         }
     }
 
+    fun getLastInDate(code:String) : String {
+        return items.value?.findLast { it.variantCode == code && it.from == "in" }?.date ?: ""
+    }
+
+    fun getLastOutDate(code:String) : String {
+        return items.value?.findLast { it.variantCode == code && it.from == "out" }?.date ?: ""
+    }
+
 
     fun addItem(log: Logs) {
         viewModelScope.launch {

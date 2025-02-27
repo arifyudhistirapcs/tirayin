@@ -43,13 +43,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -252,7 +255,9 @@ fun InventoryScreen(
             )
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+        Box(modifier = Modifier
+            .padding(paddingValues)
+            .fillMaxSize()) {
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -266,6 +271,8 @@ fun InventoryScreen(
                         msr1 = item.msr1,
                         qty2 = item.qty2.toString(),
                         msr2 = item.msr2,
+                        lastIn = logViewModel.getLastInDate(item.qrCode),
+                        lastOut = logViewModel.getLastOutDate(item.qrCode),
                         onEditClick = {
                             selectedVariant = item
                             showEditVariantDialog = true
@@ -352,6 +359,7 @@ fun InventoryScreen(
 @Composable
 fun LoadingDialog() {
     AlertDialog(
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         onDismissRequest = { },
         title = { Text("Loading...") },
         text = { Text("Please wait while we export the data to Excel.") },
@@ -361,7 +369,7 @@ fun LoadingDialog() {
 
 
 @Composable
-fun InventoryVariantCard(name: String,code : String?, type: String? = null, qty1: String? = null, msr1: String? = null, qty2: String? = null, msr2: String? = null, onEditClick: () -> Unit) {
+fun InventoryVariantCard(name: String,code : String?, type: String? = null, qty1: String? = null, msr1: String? = null, qty2: String? = null, msr2: String? = null,lastIn:String? = null,lastOut:String?=null, onEditClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -388,6 +396,14 @@ fun InventoryVariantCard(name: String,code : String?, type: String? = null, qty1
             if (qty2 != null && msr2 != null) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text("Sub Quantity : $qty2 $msr2", style = MaterialTheme.typography.bodyMedium, fontSize = 14.sp)
+            }
+            if (lastIn != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Last In : $lastIn", style = MaterialTheme.typography.bodyMedium, fontSize = 14.sp)
+            }
+            if (lastOut != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Last Out : $lastOut", style = MaterialTheme.typography.bodyMedium, fontSize = 14.sp)
             }
         }
     }
@@ -619,8 +635,10 @@ fun AddVariantDialog(
 
     val types by typeViewModel.items.observeAsState(initial = emptyList())
     val msr by measurementViewModel.items.observeAsState(initial = emptyList())
+    val context = LocalContext.current
 
     AlertDialog(
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         onDismissRequest = onDismiss,
         title = { Text("Add Variant") },
         text = {
@@ -658,6 +676,7 @@ fun AddVariantDialog(
                             DropdownMenuItem(
                                 text = { Text(type.name) },
                                 onClick = {
+                                    name = type.name + " "
                                     selectedTypeName = type.name
                                     selectedObjectName = type.objectName
                                     selectedUsageName = type.usageName
@@ -788,6 +807,8 @@ fun AddVariantDialog(
                         )
                     )
                     onDismiss()
+                } else {
+                    Toast.makeText(context, "Fill all the fields", Toast.LENGTH_SHORT).show()
                 }
             }) {
                 Text("Add")
@@ -816,8 +837,10 @@ fun AddTypeDialog(
     var dropdownExpanded by remember { mutableStateOf(false) }
 
     val objects by objectViewModel.items.observeAsState(initial = emptyList())
+    val context = LocalContext.current
 
     AlertDialog(
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         onDismissRequest = onDismiss,
         title = { Text("Add Type") },
         text = {
@@ -870,6 +893,8 @@ fun AddTypeDialog(
                 if (selectedObjectName.isNotBlank() && name.isNotBlank()) {
                     typeViewModel.addItem(name, selectedObjectName,selectedUsageName)
                     onDismiss()
+                } else {
+                    Toast.makeText(context, "Fill all the fields", Toast.LENGTH_SHORT).show()
                 }
             }) {
                 Text("Add")
@@ -895,8 +920,10 @@ fun AddObjectDialog(
     var dropdownExpanded by remember { mutableStateOf(false) }
 
     val usages by usageViewModel.items.observeAsState(initial = emptyList())
+    val context = LocalContext.current
 
     AlertDialog(
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         onDismissRequest = onDismiss,
         title = { Text("Add Object") },
         text = {
@@ -949,6 +976,8 @@ fun AddObjectDialog(
                 if (selectedUsageName.isNotBlank() && name.isNotBlank()) {
                     objectViewModel.addItem(name,selectedUsageName)
                     onDismiss()
+                } else {
+                    Toast.makeText(context, "Fill all the fields", Toast.LENGTH_SHORT).show()
                 }
             }) {
                 Text("Add")
@@ -965,8 +994,10 @@ fun AddObjectDialog(
 @Composable
 fun AddUsageDialog(usageViewModel: UsageViewModel, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     AlertDialog(
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         onDismissRequest = onDismiss,
         title = { Text("Add Usage") },
         text = {
@@ -976,8 +1007,12 @@ fun AddUsageDialog(usageViewModel: UsageViewModel, onDismiss: () -> Unit) {
         },
         confirmButton = {
             Button(onClick = {
-                usageViewModel.addItem(name)
-                onDismiss()
+                if (name.isNotBlank()) {
+                    usageViewModel.addItem(name)
+                    onDismiss()
+                } else {
+                    Toast.makeText(context, "Fill all the fields", Toast.LENGTH_SHORT).show()
+                }
             }) {
                 Text("Add")
             }
@@ -993,8 +1028,10 @@ fun AddUsageDialog(usageViewModel: UsageViewModel, onDismiss: () -> Unit) {
 @Composable
 fun AddMeasurementDialog(measurementViewModel: MeasurementViewModel, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     AlertDialog(
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         onDismissRequest = onDismiss,
         title = { Text("Add Measurement") },
         text = {
@@ -1004,8 +1041,12 @@ fun AddMeasurementDialog(measurementViewModel: MeasurementViewModel, onDismiss: 
         },
         confirmButton = {
             Button(onClick = {
-                measurementViewModel.addItem(name)
-                onDismiss()
+                if (name.isNotBlank()) {
+                    measurementViewModel.addItem(name)
+                    onDismiss()
+                } else {
+                    Toast.makeText(context, "Fill all the fields", Toast.LENGTH_SHORT).show()
+                }
             }) {
                 Text("Add")
             }
@@ -1034,14 +1075,18 @@ fun EditVariantDialog(
     var xqty2 by remember { mutableStateOf(variant.xqty2.toString()) }
     var msr2 by remember { mutableStateOf(variant.msr2) }
     var selectedTypeName by remember { mutableStateOf(variant.typeName) }
+    var selectedObjectName by remember { mutableStateOf(variant.objectName) }
+    var selectedUsageName by remember { mutableStateOf(variant.usageName) }
     var dropdownExpandedType by remember { mutableStateOf(false) }
     var dropdownExpandedMsr1 by remember { mutableStateOf(false) }
     var dropdownExpandedMsr2 by remember { mutableStateOf(false) }
 
     val types by typeViewModel.items.observeAsState(initial = emptyList())
     val msr by measurementViewModel.items.observeAsState(initial = emptyList())
+    val context = LocalContext.current
 
     AlertDialog(
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         onDismissRequest = onDismiss,
         title = { Text("Edit Variant") },
         text = {
@@ -1087,7 +1132,10 @@ fun EditVariantDialog(
                             DropdownMenuItem(
                                 text = { Text(type.name) },
                                 onClick = {
+                                    name = type.name + " "
                                     selectedTypeName = type.name
+                                    selectedObjectName = type.objectName
+                                    selectedUsageName = type.usageName
                                     dropdownExpandedType = false
                                 }
                             )
@@ -1189,8 +1237,10 @@ fun EditVariantDialog(
                             trxCode = ""
                         )
                     )
-                    variantViewModel.updateItem(variant.copy(name = name, qty1 = qty1.toInt(), typeName = selectedTypeName , msr1 = msr1, qty2 = xqty2.toInt()*qty1.toInt(), msr2 = msr2 , xqty2 = xqty2.toInt()))
+                    variantViewModel.updateItem(variant.copy(name = name, qty1 = qty1.toInt(), typeName = selectedTypeName , objectName = selectedObjectName, usageName = selectedUsageName, msr1 = msr1, qty2 = xqty2.toInt()*qty1.toInt(), msr2 = msr2 , xqty2 = xqty2.toInt()))
                     onDismiss()
+                } else {
+                    Toast.makeText(context, "Fill all the fields", Toast.LENGTH_SHORT).show()
                 }
             }) {
                 Text("Save")
@@ -1211,9 +1261,11 @@ fun EditTypeDialog(typeViewModel: TypeViewModel,objectViewModel: ObjectViewModel
     var selectedObjectName by remember { mutableStateOf(type.objectName) }
     var dropdownExpanded by remember { mutableStateOf(false) }
     val objects by objectViewModel.items.observeAsState(initial = emptyList())
+    val context = LocalContext.current
 
 
     AlertDialog(
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         onDismissRequest = onDismiss,
         title = { Text("Edit Type") },
         text = {
@@ -1265,6 +1317,8 @@ fun EditTypeDialog(typeViewModel: TypeViewModel,objectViewModel: ObjectViewModel
                 if (name.isNotBlank() && selectedObjectName.isNotBlank()) {
                     typeViewModel.updateItem(type.copy(name = name, objectName = selectedObjectName))
                     onDismiss()
+                } else {
+                    Toast.makeText(context, "Fill all the fields", Toast.LENGTH_SHORT).show()
                 }
             }) {
                 Text("Save")
@@ -1285,8 +1339,10 @@ fun EditObjectDialog(objectViewModel: ObjectViewModel,usageViewModel: UsageViewM
     var selectedUsageName by remember { mutableStateOf(obj.usageName) }
     var dropdownExpanded by remember { mutableStateOf(false) }
     val usages by usageViewModel.items.observeAsState(initial = emptyList())
+    val context = LocalContext.current
 
     AlertDialog(
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         onDismissRequest = onDismiss,
         title = { Text("Edit Object") },
         text = {
@@ -1338,6 +1394,8 @@ fun EditObjectDialog(objectViewModel: ObjectViewModel,usageViewModel: UsageViewM
                 if (name.isNotBlank() && selectedUsageName.isNotBlank()) {
                     objectViewModel.updateItem(obj.copy(name = name, usageName = selectedUsageName))
                     onDismiss()
+                } else {
+                    Toast.makeText(context, "Fill all the fields", Toast.LENGTH_SHORT).show()
                 }
             }) {
                 Text("Save")
@@ -1354,8 +1412,10 @@ fun EditObjectDialog(objectViewModel: ObjectViewModel,usageViewModel: UsageViewM
 @Composable
 fun EditUsageDialog(usageViewModel: UsageViewModel, usage: Usages, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf(usage.name) }
+    val context = LocalContext.current
 
     AlertDialog(
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         onDismissRequest = onDismiss,
         title = { Text("Edit Usage") },
         text = {
@@ -1373,6 +1433,8 @@ fun EditUsageDialog(usageViewModel: UsageViewModel, usage: Usages, onDismiss: ()
                 if (name.isNotBlank()) {
                     usageViewModel.updateItem(usage.copy(name = name))
                     onDismiss()
+                } else {
+                    Toast.makeText(context, "Fill all the fields", Toast.LENGTH_SHORT).show()
                 }
             }) {
                 Text("Save")
@@ -1389,8 +1451,10 @@ fun EditUsageDialog(usageViewModel: UsageViewModel, usage: Usages, onDismiss: ()
 @Composable
 fun EditMeasurementDialog(measurementViewModel: MeasurementViewModel, measurement: Measurements, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf(measurement.name) }
+    val context = LocalContext.current
 
     AlertDialog(
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         onDismissRequest = onDismiss,
         title = { Text("Edit Usage") },
         text = {
@@ -1408,6 +1472,8 @@ fun EditMeasurementDialog(measurementViewModel: MeasurementViewModel, measuremen
                 if (name.isNotBlank()) {
                     measurementViewModel.updateItem(measurement.copy(name = name))
                     onDismiss()
+                } else {
+                    Toast.makeText(context, "Fill all the fields", Toast.LENGTH_SHORT).show()
                 }
             }) {
                 Text("Save")
@@ -1439,13 +1505,14 @@ fun TransactionFormDialog(
     var use by remember { mutableStateOf("") }
     var condition by remember { mutableStateOf("") }
     var showQRCodeScanner by remember { mutableStateOf(true) }
+    var showDialogConfirmation by remember { mutableStateOf(false) }
     var dropdownExpanded by remember { mutableStateOf(false) }
     val selectedItemList by remember { mutableStateOf(mutableListOf<Variants>()) }
     var selectedItemQuantityExisting by remember { mutableIntStateOf(0) }
 
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
     val variants by variantViewModel.items.observeAsState(initial = emptyList())
 
     AlertDialog(
@@ -1453,7 +1520,9 @@ fun TransactionFormDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (isStockIn) "Generate Stock In" else "Generate Stock Out") },
         text = {
-            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())) {
                 // Date Picker Button
                 Button(onClick = { showDatePicker = true }) {
                     Text(text = "Select Date: ${dateFormat.format(Date(date))}")
@@ -1481,20 +1550,17 @@ fun TransactionFormDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // QR Code Scanner Button
-//                Button(onClick = { showQRCodeScanner = !showQRCodeScanner }) {
-//                    Text(if (showQRCodeScanner)"Hide QR Code Scanner" else "Show QR Code Scanner")
-//                }
-
                 if (showQRCodeScanner) {
                     QRCodeScanner { qrCode ->
-                        val variant = variants.find { it.qrCode == qrCode }
+                        val variant = variants.find { it.qrCode == qrCode && selectedItemList.none { w -> w.id == it.id  }}
                         if (variant != null) {
                             selectedVariant = variant
                             selectedItemQuantityExisting = variant.qty1
+                        } else {
+                            Toast.makeText(context, "Item not found or already selected", Toast.LENGTH_SHORT).show()
                         }
                         showQRCodeScanner = false
+
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1511,7 +1577,19 @@ fun TransactionFormDialog(
                         readOnly = true,
                         label = { Text("Item") },
                         trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded)
+                            IconButton(onClick = {
+                                dropdownExpanded = !dropdownExpanded
+                                if (selectedVariant != null) {
+                                    selectedVariant = null
+                                    quantity = ""
+                                    use = ""
+                                    condition = ""
+                                    selectedItemQuantityExisting = 0
+                                }
+                                showQRCodeScanner = true
+                            }){
+                                Icon(if (selectedVariant == null) Icons.Filled.Search else Icons.Filled.Clear, contentDescription = null)
+                            }
                         },
                         modifier = Modifier
                             .menuAnchor()
@@ -1589,6 +1667,7 @@ fun TransactionFormDialog(
                             use = ""
                             condition = ""
                             selectedItemQuantityExisting = 0
+                            showQRCodeScanner = true
                         } else if (isStockIn) {
                             selectedItemList.add(Variants(
                                 id = selectedVariant!!.id,
@@ -1606,15 +1685,20 @@ fun TransactionFormDialog(
                             selectedVariant = null
                             quantity = ""
                             selectedItemQuantityExisting = 0
+                            showQRCodeScanner = true
+                        } else {
+                            Toast.makeText(context, "Make sure all fields correct", Toast.LENGTH_SHORT).show()
+                            showQRCodeScanner = false
                         }
-
+                    } else {
+                        showQRCodeScanner = false
+                        Toast.makeText(context, "Make sure all fields correct", Toast.LENGTH_SHORT).show()
                     }
-                    showQRCodeScanner = true
                 }) {
-                    Text("Add more item")
+                    Text("Add to cart")
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Make sure to add all items before saving")
+                Text("Cart (Total item : ${selectedItemList.size})", style = MaterialTheme.typography.bodyMedium)
 
                 // Display and Edit Added Variants
                 Row {
@@ -1650,6 +1734,66 @@ fun TransactionFormDialog(
         confirmButton = {
             Button(onClick = {
                 if (name.isNotBlank() && selectedItemList.isNotEmpty()) {
+                    showDialogConfirmation = true
+                }
+            },
+                enabled = name.isNotBlank() && selectedItemList.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(if (name.isNotBlank() && selectedItemList.isNotEmpty()) Color.Blue else Color.Gray)
+
+            )
+            {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+
+    if (showDialogConfirmation) {
+        AlertDialog(
+            properties = DialogProperties(dismissOnClickOutside = false),
+            onDismissRequest = { showDialogConfirmation = false },
+            title = { Text("Confirm Cart") },
+            text = {
+                Column {
+                    Row {
+                        Text("Item", modifier = Modifier.weight(4f))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Quantity", modifier = Modifier.weight(4f))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        if (!isStockIn) {
+                            Text("Use", modifier = Modifier.weight(4f))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Condition", modifier = Modifier.weight(4f))
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    selectedItemList.forEachIndexed { _, variant ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row {
+                            Text(variant.name, modifier = Modifier.weight(1f))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("${variant.qty1} ${variant.msr1}", modifier = Modifier.weight(1f))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            if (!isStockIn) {
+                                Text("${variant.uses}", modifier = Modifier.weight(1f))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("${variant.condition}", modifier = Modifier.weight(1f))
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                        }
+                    }
+                }
+                   },
+            confirmButton = {
+                Button(onClick = {
+                    // Save transaction logic here
+                    showDialogConfirmation = false
+
                     val newTransaction = Transactions(
                         status = if (isStockIn) "in" else "out",
                         name = name,
@@ -1679,17 +1823,18 @@ fun TransactionFormDialog(
                         }
                     }
                     onDismiss()
+
+                }) {
+                    Text("Yes")
                 }
-            }) {
-                Text("Save")
+            },
+            dismissButton = {
+                Button(onClick = { showDialogConfirmation = false }) {
+                    Text("No")
+                }
             }
-        },
-        dismissButton = {
-            Button(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
+        )
+    }
 
 
 }
@@ -1738,7 +1883,7 @@ fun exportToExcel(context: Context, variantViewModel: VariantViewModel, transact
 
     // Write the header row for stocks
     val stockHeaderRow = stockSheet.createRow(0)
-    val stockHeaders = listOf("Code","Name", "Main Quantity", "Sub Quantity", "Type", "Object", "Usage", "QR Code")
+    val stockHeaders = listOf("Code","Name", "Main Quantity","Main Qty Measurement", "Sub Quantity","Sub Qty Measurement", "Type", "Object", "Usage", "QR Code")
     stockHeaders.forEachIndexed { index, header ->
         val cell = stockHeaderRow.createCell(index)
         cell.setCellValue(header)
@@ -1758,22 +1903,30 @@ fun exportToExcel(context: Context, variantViewModel: VariantViewModel, transact
             cellStyle = dataStyle
         }
         row.createCell(2).apply {
-            setCellValue("${variant.qty1} ${variant.msr1}")
+            setCellValue("${variant.qty1}")
             cellStyle = dataStyle
         }
         row.createCell(3).apply {
-            setCellValue("${variant.qty2} ${variant.msr2}")
+            setCellValue(variant.msr1)
             cellStyle = dataStyle
         }
         row.createCell(4).apply {
-            setCellValue(variant.typeName)
+            setCellValue("${variant.qty2}")
             cellStyle = dataStyle
         }
         row.createCell(5).apply {
-            setCellValue(variant.objectName)
+            setCellValue(variant.msr2)
             cellStyle = dataStyle
         }
         row.createCell(6).apply {
+            setCellValue(variant.typeName)
+            cellStyle = dataStyle
+        }
+        row.createCell(7).apply {
+            setCellValue(variant.objectName)
+            cellStyle = dataStyle
+        }
+        row.createCell(8).apply {
             setCellValue(variant.usageName)
             cellStyle = dataStyle
         }
@@ -1782,9 +1935,9 @@ fun exportToExcel(context: Context, variantViewModel: VariantViewModel, transact
         val helper = workbook.creationHelper
         val drawing = stockSheet.createDrawingPatriarch()
         val anchor = helper.createClientAnchor()
-        anchor.setCol1(7)
+        anchor.setCol1(9)
         anchor.row1 = row.rowNum
-        anchor.setCol2(8)
+        anchor.setCol2(10)
         anchor.row2 = row.rowNum + 1
         drawing.createPicture(anchor, pictureIdx)
     }
@@ -1805,7 +1958,7 @@ fun exportToExcel(context: Context, variantViewModel: VariantViewModel, transact
     // Write the header row for variants
     val variantRowNum = transactions.size + 2
     val variantHeaderRow = transactionSheet.createRow(variantRowNum)
-    val variantHeaders = listOf("Transaction Code", "Name", "Item Code", "Main Quantity", "Sub Quantity", "Use", "Condition")
+    val variantHeaders = listOf("Transaction Code", "Name", "Item Code", "Main Quantity","Main Qty Measurement", "Sub Quantity","Sub Qty Measurement", "Use", "Condition")
     variantHeaders.forEachIndexed { index, header ->
         val cell = variantHeaderRow.createCell(index)
         cell.setCellValue(header)
@@ -1821,7 +1974,7 @@ fun exportToExcel(context: Context, variantViewModel: VariantViewModel, transact
             cellStyle = dataStyle
         }
         row.createCell(1).apply {
-            setCellValue(SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(transaction.date)))
+            setCellValue(SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(transaction.date)))
             cellStyle = dataStyle
         }
         row.createCell(2).apply {
@@ -1852,18 +2005,26 @@ fun exportToExcel(context: Context, variantViewModel: VariantViewModel, transact
                 cellStyle = dataStyle
             }
             variantRow.createCell(3).apply {
-                setCellValue("${variants.qty1} ${variants.msr1}")
+                setCellValue("${variants.qty1}")
                 cellStyle = dataStyle
             }
             variantRow.createCell(4).apply {
-                setCellValue("${variants.qty2} ${variants.msr2}")
+                setCellValue(variants.msr1)
                 cellStyle = dataStyle
             }
             variantRow.createCell(5).apply {
-                setCellValue(variants.uses)
+                setCellValue("${variants.qty2}")
                 cellStyle = dataStyle
             }
             variantRow.createCell(6).apply {
+                setCellValue(variants.msr2)
+                cellStyle = dataStyle
+            }
+            variantRow.createCell(7).apply {
+                setCellValue(variants.uses)
+                cellStyle = dataStyle
+            }
+            variantRow.createCell(8).apply {
                 setCellValue(variants.condition)
                 cellStyle = dataStyle
             }
@@ -1987,7 +2148,10 @@ fun QRCodeScanner(onQRCodeScanned: (String) -> Unit) {
         }
     }
 
-    AndroidView({ previewView }, modifier = Modifier.size(300.dp).aspectRatio(1f).padding(30.dp))
+    AndroidView({ previewView }, modifier = Modifier
+        .size(300.dp)
+        .aspectRatio(1f)
+        .padding(30.dp))
 }
 
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
