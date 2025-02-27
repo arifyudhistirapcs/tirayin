@@ -77,4 +77,31 @@
 -dontwarn org.osgi.framework.**
 -dontwarn org.tukaani.xz.**
 
+-keep class org.apache.logging.log4j.** { *; }
+-dontwarn org.apache.logging.log4j.**
+
+# Apache POI
+-dontwarn com.github.luben.**
+-dontwarn com.microsoft.**
+-dontwarn com.sun.**
+-dontwarn java.awt.**
+-dontwarn javax.**
+-dontwarn org.apache.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.brotli.**
+-dontwarn org.etsi.**
+-dontwarn org.ietf.**
+-dontwarn org.openxmlformats.**
+-dontwarn org.tukaani.**
+-dontwarn org.w3.**
+-keep class com.microsoft.** { *; }
+-keep class javax.** { *; }
+-keep class org.apache.** { *; }
+-keep class org.etsi.** { *; }
+-keep class org.openxmlformats.** { *; }
+-keep class org.w3.** { *; }
+-keep class org.w3c.** { *; }
+-keep class org.xml.sax.** { *; }
+-keep class schemaorg_apache_xmlbeans.** { *; }
+
 
